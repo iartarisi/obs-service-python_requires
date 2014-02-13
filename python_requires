@@ -91,21 +91,24 @@ def update_spec_files(pip_requires):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Python Requires')
-    parser.add_argument('--filename', required=True,
-                        help='where to save the downloaded tarball')
-    parser.add_argument('--package',
-                        help='the OBS package name')
+    parser.add_argument('--outdir',
+                        help='osc service parameter that does nothing')
     args = parser.parse_args()
 
-    if not args.filename:
-        args.filename = args.url.rsplit("/", 1)[1]
-    if not args.package:
-        args.package = os.getcwd().rsplit("/", 1)[1]
+    # Try to find the tarball
+    candidates = set()
+    for d in os.listdir('.'):
+        if '.tar.' in d:
+            candidates.add(d)
 
-    pip_requires = get_file_from_tarball(args.filename, '/requirements.txt')
+    candidates = list(candidates)
+    candidates.sort(key=lambda i: (-len(i)))
+    filename = candidates[0]
+
+    pip_requires = get_file_from_tarball(filename, '/requirements.txt')
 
     try:
-        pip_test_requires = get_file_from_tarball(args.filename,
+        pip_test_requires = get_file_from_tarball(filename,
                                                   '/test-requirements.txt')
     except Exception:
         pip_test_requires = ""
