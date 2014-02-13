@@ -145,8 +145,7 @@ if __name__ == '__main__':
         'python-setuptools',
         'python-setuptools-git', 'python-distribute',
         'python-pylint', 'python-hacking',
-        'python-argparse', 'python-docutils',
-        'python-oslo.sphinx', 'python-oslosphinx')
+        'python-docutils', 'python-oslo.sphinx', 'python-oslosphinx')
 
     real_requires = dict()
     for k in set(d.keys()).difference(ignore_requires):
