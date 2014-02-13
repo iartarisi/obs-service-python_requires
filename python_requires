@@ -18,23 +18,7 @@ import argparse
 import glob
 import os
 import re
-import sys
 import tarfile
-import urllib
-
-
-
-def download_tarball(url, filename):
-    """Download an upstream tarball
-
-    :url: remote source of the tarball
-    :filename: where to save the downloaded tarball
-
-    """
-    try:
-        urllib.urlretrieve(url, filename)
-    except IOError as e:
-        sys.exit(e)
 
 
 def get_file_from_tarball(tar_name, filename):
@@ -54,30 +38,6 @@ def get_file_from_tarball(tar_name, filename):
     return changelog
 
 
-def get_parent_dir_and_version_from_tarball(tar_name, version_regexp):
-    tar = tarfile.open(tar_name)
-    parent_dir = tar.firstmember.name
-    tar.close()
-
-    try:
-        match = re.match(version_regexp, parent_dir)
-    except re.error, e:
-        sys.exit("Could not use '%s' as regular expression to find "
-                 "version: " % (version_regexp, e))
-
-    if match is None:
-        sys.exit("Could not use '%s' as regular expression to find "
-                 "version in '%s': no match" % (version_regexp, parent_dir))
-    elif len(match.groups()) != 1:
-        sys.exit("Could not use '%s' as regular expression to find "
-                 "version in '%s': more than one match" %
-                 (version_regexp, parent_dir))
-    else:
-        version = match.group(1)
-
-    return (parent_dir, version)
-
-
 def parse_update_spec_file(specfile, contents, pip_requires):
 
     found_requires = set()
@@ -87,29 +47,31 @@ def parse_update_spec_file(specfile, contents, pip_requires):
 
         all_requires.add(d)
 
-        if re.search(r'^Requires:\s+%s' % (d), contents, flags=re.MULTILINE|re.IGNORECASE) >= 0:
+        if re.search(r'^Requires:\s+%s' % (d), contents,
+                     flags=re.MULTILINE | re.IGNORECASE) >= 0:
             found_requires.add(d)
 
         if pip_requires[d]:
-            contents = re.sub(r'^(Requires:[ \t]+)(%s)(?:[ \t].*)?$' % (d),
-                    r'\g<1>\g<2> >= %s' % (pip_requires[d]),
-                    contents, flags=re.MULTILINE|re.IGNORECASE)[:]
+            contents = re.sub(
+                r'^(Requires:[ \t]+)(%s)(?:[ \t].*)?$' % (d),
+                r'\g<1>\g<2> >= %s' % (pip_requires[d]),
+                contents, flags=re.MULTILINE | re.IGNORECASE)[:]
 
     if not specfile.endswith("-doc.spec"):
 
         spec_requires = set()
         for m in re.finditer(r"^Requires:[ \t]+python-([\w\d\.-]+)",
-                            contents, flags=re.MULTILINE|re.IGNORECASE):
+                             contents, flags=re.MULTILINE | re.IGNORECASE):
             spec_requires.add("python-%s" % m.group(1))
 
         if all_requires.difference(found_requires):
             for d in all_requires.difference(found_requires):
-                print "ERROR: %s is missing in %s" % (d, specfile)
+                print("ERROR: %s is missing in %s" % (d, specfile))
 
         for d in spec_requires.difference(all_requires):
             if d.lower() in all_requires:
                 continue
-            print "W: %s is not found in upstream" % d
+            print("W: %s is not found in upstream" % d)
 
     return contents
 
@@ -127,33 +89,12 @@ def update_spec_files(pip_requires):
             f.close()
 
 
-def update_changes_file(package, changes):
-    try:
-        f = open(package + '.changes', 'r+')
-        contents = f.read()
-        f.seek(0)
-        f.write(changes)
-        f.write(contents)
-    finally:
-        f.close()
-
-
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Git Tarballs')
+    parser = argparse.ArgumentParser(description='Python Requires')
     parser.add_argument('--filename', required=True,
                         help='where to save the downloaded tarball')
     parser.add_argument('--package',
                         help='the OBS package name')
-    parser.add_argument('--email',
-                        help='email of the commit author '
-                        '(for the .changes file)')
-    parser.add_argument('--version-regexp', default='.*-([^-]+)',
-                        help='regular expression for extracting version from '
-                        'top-level directory in tarball '
-                        '(default: ".*-([^-]+)")')
-    parser.add_argument('--outdir',
-                        help='osc service parameter that does nothing')
-    parser.add_argument('--plain-version', help='use upstream version string')
     args = parser.parse_args()
 
     if not args.filename:
@@ -161,24 +102,16 @@ if __name__ == '__main__':
     if not args.package:
         args.package = os.getcwd().rsplit("/", 1)[1]
 
-    try:
-        pip_requires = get_file_from_tarball(args.filename, '/tools/pip-requires')
-
-    except Exception:
-        pip_requires = get_file_from_tarball(args.filename, '/requirements.txt')
+    pip_requires = get_file_from_tarball(args.filename, '/requirements.txt')
 
     try:
-        pip_test_requires = get_file_from_tarball(args.filename, '/tools/test-requires')
+        pip_test_requires = get_file_from_tarball(args.filename,
+                                                  '/test-requirements.txt')
     except Exception:
-        try:
-            pip_test_requires = get_file_from_tarball(args.filename, '/test-requirements.txt')
-        except Exception:
-            pip_test_requires = ""
-            pass
+        pip_test_requires = ""
+        pass
 
     d = dict()
-
-    import re
 
     for l in pip_requires.split('\n') + pip_test_requires.split('\n'):
         # strip away comments
@@ -205,10 +138,11 @@ if __name__ == '__main__':
         elif len(l):
             d["python-%s" % (l)] = None
 
-    ignore_requires=('python-sphinx', 'python-setuptools_git',
-            'python-setuptools-git', 'python-distribute',
-            'python-pylint', 'python-hacking',
-            'python-argparse', 'python-docutils', 'python-oslo.sphinx')
+    ignore_requires = (
+        'python-sphinx', 'python-setuptools_git',
+        'python-setuptools-git', 'python-distribute',
+        'python-pylint', 'python-hacking',
+        'python-argparse', 'python-docutils', 'python-oslo.sphinx')
 
     real_requires = dict()
     for k in set(d.keys()).difference(ignore_requires):
