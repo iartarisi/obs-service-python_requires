@@ -1,0 +1,5 @@
+<service name="python_requires">
+  <summary>Refreshes Python Requires from the source tarballs</summary>
+  <description>This service updates Requires in the spec file from the source tarball. </description>
+</service>
+
