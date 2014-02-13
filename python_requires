@@ -21,7 +21,7 @@ import re
 import tarfile
 
 
-def get_file_from_tarball(tar_name, filename):
+def read_from_tarball(tar_name, filename):
 
     try:
         tar = tarfile.open(tar_name)
@@ -38,12 +38,12 @@ def get_file_from_tarball(tar_name, filename):
     return changelog
 
 
-def parse_update_spec_file(specfile, contents, pip_requires):
+def parse_update_spec_file(specfile, contents, run_requires):
 
     found_requires = set()
     all_requires = set()
 
-    for d in pip_requires:
+    for d in run_requires:
 
         all_requires.add(d)
 
@@ -51,10 +51,10 @@ def parse_update_spec_file(specfile, contents, pip_requires):
                      flags=re.MULTILINE | re.IGNORECASE) >= 0:
             found_requires.add(d)
 
-        if pip_requires[d]:
+        if run_requires[d]:
             contents = re.sub(
                 r'^(Requires:[ \t]+)(%s)(?:[ \t].*)?$' % (d),
-                r'\g<1>\g<2> >= %s' % (pip_requires[d]),
+                r'\g<1>\g<2> >= %s' % (run_requires[d]),
                 contents, flags=re.MULTILINE | re.IGNORECASE)[:]
 
     if not specfile.endswith("-doc.spec"):
@@ -76,14 +76,14 @@ def parse_update_spec_file(specfile, contents, pip_requires):
     return contents
 
 
-def update_spec_files(pip_requires):
+def update_spec_files(run_requires):
     for specfile in glob.glob('./*.spec'):
         try:
             f = open(specfile, 'r+')
             contents = f.read()
             f.seek(0)
             f.truncate()
-            contents = parse_update_spec_file(specfile, contents, pip_requires)
+            contents = parse_update_spec_file(specfile, contents, run_requires)
             f.write(contents)
         finally:
             f.close()
@@ -105,18 +105,17 @@ if __name__ == '__main__':
     candidates.sort(key=lambda i: (-len(i)))
     filename = candidates[0]
 
-    pip_requires = get_file_from_tarball(filename, '/requirements.txt')
+    run_requires = read_from_tarball(filename, '/requirements.txt')
 
     try:
-        pip_test_requires = get_file_from_tarball(filename,
-                                                  '/test-requirements.txt')
+        test_requires = read_from_tarball(filename, '/test-requirements.txt')
     except Exception:
-        pip_test_requires = ""
+        test_requires = ""
         pass
 
     d = dict()
 
-    for l in pip_requires.split('\n') + pip_test_requires.split('\n'):
+    for l in run_requires.split('\n') + test_requires.split('\n'):
         # strip away comments
         l = re.sub('#.*', ' ', l)
         # strip away whitespace
@@ -143,9 +142,11 @@ if __name__ == '__main__':
 
     ignore_requires = (
         'python-sphinx', 'python-setuptools_git',
+        'python-setuptools',
         'python-setuptools-git', 'python-distribute',
         'python-pylint', 'python-hacking',
-        'python-argparse', 'python-docutils', 'python-oslo.sphinx')
+        'python-argparse', 'python-docutils',
+        'python-oslo.sphinx', 'python-oslosphinx')
 
     real_requires = dict()
     for k in set(d.keys()).difference(ignore_requires):
