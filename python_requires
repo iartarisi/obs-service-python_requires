@@ -47,7 +47,7 @@ def parse_update_spec_file(specfile, contents, run_requires):
 
         all_requires.add(d)
 
-        if re.search(r'^Requires:\s+%s' % (d), contents,
+        if re.search(r'^(Build)?Requires:\s+%s' % (d), contents,
                      flags=re.MULTILINE | re.IGNORECASE) >= 0:
             found_requires.add(d)
 
@@ -58,7 +58,6 @@ def parse_update_spec_file(specfile, contents, run_requires):
                 contents, flags=re.MULTILINE | re.IGNORECASE)[:]
 
     if not specfile.endswith("-doc.spec"):
-
         spec_requires = set()
         for m in re.finditer(r"^Requires:[ \t]+python-([\w\d\.-]+)",
                              contents, flags=re.MULTILINE | re.IGNORECASE):
@@ -141,6 +140,7 @@ if __name__ == '__main__':
             d["python-%s" % (l)] = None
 
     ignore_requires = (
+        'python-coverage',
         'python-sphinx', 'python-setuptools_git',
         'python-setuptools',
         'python-setuptools-git', 'python-distribute',
