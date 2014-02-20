@@ -145,7 +145,7 @@ if __name__ == '__main__':
         'python-docutils', 'python-oslo.sphinx', 'python-oslosphinx')
 
     real_requires = dict()
-    for k in set(d.keys()).difference(ignore_requires):
+    for k in set(d).difference(ignore_requires):
         real_requires[k] = d[k]
 
     update_spec_files(real_requires)
