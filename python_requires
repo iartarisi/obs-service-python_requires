@@ -25,13 +25,16 @@ def read_from_tarball(tar_name, filename):
 
     try:
         tar = tarfile.open(tar_name)
-        changelog_file = min((f for f in tar.getnames()
-                              if f.endswith(filename)),
-                             key=len)
+
+        try:
+            changelog_file = min((f for f in tar.getnames()
+                                  if f.endswith(filename)),
+                                 key=len)
+        except ValueError:
+            raise Exception("Coud not find a file %s in %s" %
+                            (filename, tar_name))
         t = tar.getmember(changelog_file)
         changelog = tar.extractfile(t).read()
-    except StopIteration:
-        raise Exception("Coud not find a file %s in %s" % (filename, tar_name))
     finally:
         tar.close()
     return changelog
